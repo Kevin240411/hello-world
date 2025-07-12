@@ -154,5 +154,100 @@ fileInput.addEventListener('change', (e) => {
     }
 });
 
+// Función principal para obtener contenido web
+async function fetchWebContent(url) {
+    const statusElement = document.getElementById('web-content-status');
+    statusElement.textContent = "Obteniendo contenido...";
+    statusElement.style.color = "#666";
+
+    try {
+        // Usamos un proxy CORS para evitar problemas (puedes implementar tu propio backend)
+        const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+        
+        const response = await fetch(proxyUrl);
+        
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.contents) {
+            // Limpiamos el HTML para obtener solo texto
+            const cleanText = cleanHtmlContent(data.contents);
+            statusElement.textContent = "Contenido obtenido con éxito!";
+            statusElement.style.color = "green";
+            
+            // Mostramos los primeros 500 caracteres en el textarea
+            textInput.value = cleanText.substring(0, 500) + (cleanText.length > 500 ? "..." : "");
+            
+            // Opción para leer todo el contenido
+            addMessage("Sistema", `Se obtuvo contenido de ${url} (${cleanText.length} caracteres)`, "bot");
+            
+            // Crear botón para leer todo
+            const readAllBtn = document.createElement('button');
+            readAllBtn.textContent = "Leer todo el contenido";
+            readAllBtn.style.marginTop = "10px";
+            readAllBtn.onclick = () => {
+                speak(cleanText.substring(0, 5000)); // Limitar a 5000 caracteres por rendimiento
+            };
+            
+            statusElement.appendChild(readAllBtn);
+            
+            return cleanText;
+        } else {
+            throw new Error("No se pudo obtener el contenido");
+        }
+    } catch (error) {
+        statusElement.textContent = `Error: ${error.message}`;
+        statusElement.style.color = "red";
+        addMessage("Sistema", `Error al obtener la página: ${error.message}`, "bot");
+        return null;
+    }
+}
+
+// Función para limpiar HTML y obtener solo texto
+function cleanHtmlContent(html) {
+    // Crear elemento temporal para parsear HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Eliminar elementos no deseados
+    const unwantedTags = ['script', 'style', 'nav', 'footer', 'iframe'];
+    unwantedTags.forEach(tag => {
+        const elements = tempDiv.getElementsByTagName(tag);
+        Array.from(elements).forEach(el => el.remove());
+    });
+    
+    // Obtener texto limpio
+    let text = tempDiv.textContent || tempDiv.innerText || "";
+    
+    // Limpiar espacios múltiples y saltos de línea
+    text = text.replace(/\s+/g, ' ').trim();
+    
+    return text;
+}
+
+// Event listener para el botón
+document.getElementById('fetch-web-content').addEventListener('click', async () => {
+    const url = document.getElementById('web-url').value.trim();
+    
+    if (!url) {
+        document.getElementById('web-content-status').textContent = "Por favor ingresa una URL válida";
+        document.getElementById('web-content-status').style.color = "red";
+        return;
+    }
+    
+    // Validar URL
+    try {
+        new URL(url);
+    } catch {
+        document.getElementById('web-content-status').textContent = "URL inválida";
+        document.getElementById('web-content-status').style.color = "red";
+        return;
+    }
+    
+    await fetchWebContent(url);
+});
 // Mensaje inicial
 addMessage("Sistema", "Hola! Puedes escribir texto, cargar un archivo o hablar conmigo.", "bot");
