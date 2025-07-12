@@ -123,25 +123,11 @@ async function readPDFFile(file) {
 }
 
 // Event Listeners
-document.addEventListener('DOMContentLoaded', () => {
-    // Verificar compatibilidad
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        addMessage("Sistema", "Tu navegador no soporta reconocimiento de voz", "bot");
-        startListeningBtn.disabled = true;
+speakTextBtn.addEventListener('click', () => {
+    if (textInput.value.trim()) {
+        addMessage("Tú", textInput.value, "user");
+        speak(textInput.value);
     }
-    
-    // Verificar permisos al hacer clic
-    startListeningBtn.addEventListener('click', async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            stream.getTracks().forEach(track => track.stop());
-            
-            if (!recognition) setupRecognition();
-            recognition.start();
-        } catch (error) {
-            addMessage("Sistema", "Error: Necesitas permitir el uso del micrófono", "bot");
-        }
-    });
 });
 
 startListeningBtn.addEventListener('click', () => {
