@@ -95,25 +95,31 @@ function readTextFile(file) {
 async function readPDFFile(file) {
     addMessage("Sistema", "Leyendo PDF... Esto puede tomar un momento", "bot");
     
-    // Nota: Para leer PDFs necesitarías incluir la librería pdf.js
-    // Esta es una implementación simplificada
-    const pdfjsLib = window['pdfjs-dist/build/pdf'];
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.js';
-    
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-    let fullText = '';
-    
-    for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const text = textContent.items.map(item => item.str).join(' ');
-        fullText += text + '\n';
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+        let fullText = '';
+        
+        // Limitar a las primeras 5 páginas para no sobrecargar
+        const pageLimit = Math.min(5, pdf.numPages);
+        
+        for (let i = 1; i <= pageLimit; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const text = textContent.items.map(item => item.str).join(' ');
+            fullText += text + '\n';
+            
+            // Actualizar progreso
+            addMessage("Sistema", `Procesando página ${i} de ${pageLimit}...`, "bot");
+        }
+        
+        textInput.value = fullText;
+        speak(fullText.substring(0, 1000)); // Limitar para no sobrecargar
+        addMessage("Sistema", `PDF leído (${pageLimit} páginas procesadas)`, "bot");
+    } catch (error) {
+        addMessage("Sistema", `Error al leer PDF: ${error.message}`, "bot");
+        console.error("PDF Error:", error);
     }
-    
-    textInput.value = fullText;
-    speak(fullText.substring(0, 1000)); // Limitar para no sobrecargar
-    addMessage("Sistema", "PDF leído parcialmente (mostrando primeros 1000 caracteres)", "bot");
 }
 
 // Event Listeners
